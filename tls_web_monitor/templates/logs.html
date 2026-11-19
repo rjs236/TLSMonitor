@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Request Logs - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <span>Web Application</span>
+            <span class="page-title-highlight">Monitoring & Audit Logs</span>
+        </h1>
+        <div class="page-subtitle">Persistent SQLite telemetry logs with tamper-evident HMAC signatures (Total: {{ total_records }})</div>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{{ url_for('monitoring.export_logs_csv') }}" class="btn btn-secondary">
+            <span>📥</span> Export CSV
+        </a>
+        <button onclick="triggerIntegrityAudit(this)" class="btn btn-primary">
+            <span>🛡️</span> Run HMAC Audit
+        </button>
+    </div>
+</div>
+
+<!-- Search & Filtering Toolbar -->
+<div class="cyber-card" style="padding: 1.25rem;">
+    <form method="GET" action="{{ url_for('monitoring.view_logs') }}">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 0.75rem; align-items: end;">
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">Search Keyword</label>
+                <input 
+                    type="text" 
+                    name="search" 
+                    class="form-input" 
+                    placeholder="Search path, username, or IP..." 
+                    value="{{ search }}"
+                >
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">Risk Level</label>
+                <select name="risk" class="form-select">
+                    <option value="">All Risk Levels</option>
+                    {% for r in risk_levels %}
+                        <option value="{{ r }}" {% if risk_filter == r %}selected{% endif %}>{{ r }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">Event Category</label>
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for c in categories %}
+                        <option value="{{ c }}" {% if category_filter == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">HTTP Status</label>
+                <input 
+                    type="number" 
+                    name="status" 
+                    class="form-input" 
+                    placeholder="e.g. 200, 401, 403" 
+                    value="{{ status_filter }}"
+                >
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">Client IP</label>
+                <input 
+                    type="text" 
+                    name="ip" 
+                    class="form-input" 
+                    placeholder="Filter by IP..." 
+                    value="{{ ip_filter }}"
+                >
+            </div>
+
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="height: 38px;">Filter</button>
+                <a href="{{ url_for('monitoring.view_logs') }}" class="btn btn-secondary" style="height: 38px;">Reset</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Output Box for HMAC Integrity Audits -->
+<div id="testConsoleOutput" class="terminal-box" style="margin-bottom: 1.5rem; display: none;"></div>
+
+<!-- Persistent Logs Table -->
+<div class="cyber-card">
+    <div class="table-responsive">
+        <table class="cyber-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Timestamp (UTC)</th>
+                    <th>Source IP</th>
+                    <th>Method</th>
+                    <th>Requested Path</th>
+                    <th>Status</th>
+                    <th>Username</th>
+                    <th>Event Category</th>
+                    <th>Risk</th>
+                    <th>Latency</th>
+                    <th>HMAC Signature</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                    <tr>
+                        <td class="code-cell">#{{ log.id }}</td>
+                        <td class="code-cell">{{ log.timestamp }}</td>
+                        <td class="code-cell">{{ log.ip_address }}</td>
+                        <td><b>{{ log.method }}</b></td>
+                        <td class="code-cell" style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ log.path }}">{{ log.path }}</td>
+                        <td><span class="badge badge-{{ log.status_code // 100 * 100 }}">{{ log.status_code }}</span></td>
+                        <td>{{ log.username }}</td>
+                        <td><span class="badge badge-info">{{ log.event_category }}</span></td>
+                        <td><span class="badge badge-{{ log.risk_level | lower }}">{{ log.risk_level }}</span></td>
+                        <td style="color: var(--text-muted); font-size: 0.8rem;">{{ log.duration_ms }} ms</td>
+                        <td class="code-cell" style="font-size: 0.72rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ log.hmac_signature }}">
+                            {{ log.hmac_signature[:16] }}...
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="11" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                            No matching log entries found for current filter criteria.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    {% if total_pages > 1 %}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <div style="color: var(--text-secondary); font-size: 0.85rem;">
+                Showing Page <b>{{ page }}</b> of <b>{{ total_pages }}</b> (Total: {{ total_records }} entries)
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                {% if page > 1 %}
+                    <a href="{{ url_for('monitoring.view_logs', page=page-1, search=search, risk=risk_filter, category=category_filter, status=status_filter, ip=ip_filter) }}" class="btn btn-secondary btn-sm">◄ Previous</a>
+                {% endif %}
+                {% if page < total_pages %}
+                    <a href="{{ url_for('monitoring.view_logs', page=page+1, search=search, risk=risk_filter, category=category_filter, status=status_filter, ip=ip_filter) }}" class="btn btn-secondary btn-sm">Next ►</a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

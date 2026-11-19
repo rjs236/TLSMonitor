@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Security Testing Console - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <span>Interactive Security Testing</span>
+            <span class="page-title-highlight">& Attack Simulation</span>
+        </h1>
+        <div class="page-subtitle">Demonstrate real-time threat detection rules and tamper-evident log integrity verification during capstone review</div>
+    </div>
+    <div>
+        <span class="badge badge-high">Controlled Test Mode Active</span>
+    </div>
+</div>
+
+<!-- Test Triggers Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+    <!-- 1. SQL Injection Probe -->
+    <div class="cyber-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-title">
+                <span>💉 SQL Injection Test</span>
+                <span class="badge badge-high">Rule #1</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">
+                Transmits a controlled SQL tautology payload (<code>' OR '1'='1' --</code>). Checks parameter and query string inspection.
+            </p>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">
+                <b>Expected:</b> Immediate <code>SQL_INJECTION</code> HIGH-severity alert created in SQLite.
+            </div>
+        </div>
+        <button onclick="triggerTestAttack('sqli', this)" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            Launch SQLi Test Probe
+        </button>
+    </div>
+
+    <!-- 2. Path Traversal Probe -->
+    <div class="cyber-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-title">
+                <span>📂 Path Traversal Test</span>
+                <span class="badge badge-high">Rule #2</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">
+                Sends directory backtracking markers (<code>../../../../etc/passwd</code>) targeting sensitive system resources.
+            </p>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">
+                <b>Expected:</b> Immediate <code>PATH_TRAVERSAL</code> HIGH-severity alert generated in SQLite.
+            </div>
+        </div>
+        <button onclick="triggerTestAttack('traversal', this)" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            Launch Traversal Test Probe
+        </button>
+    </div>
+
+    <!-- 3. Brute Force Failed Login Simulation -->
+    <div class="cyber-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-title">
+                <span>🔑 Brute Force Simulation</span>
+                <span class="badge badge-high">Rule #3</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">
+                Simulates 5 rapid consecutive failed authentication attempts against a targeted account within the detection window.
+            </p>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">
+                <b>Expected:</b> Threshold breach triggers <code>BRUTE_FORCE</code> HIGH-severity alert.
+            </div>
+        </div>
+        <button onclick="triggerTestAttack('brute_force', this)" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            Simulate Brute Force Attack
+        </button>
+    </div>
+
+    <!-- 4. Rate-Limit Burst Simulation -->
+    <div class="cyber-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-title">
+                <span>⏱️ Rate Limit Burst Test</span>
+                <span class="badge badge-medium">Rule #4</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">
+                Simulates an excessive frequency request flood from a single client exceeding configured requests/minute.
+            </p>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">
+                <b>Expected:</b> Triggers <code>RATE_LIMIT_EXCEEDED</code> MEDIUM alert with IP attribution.
+            </div>
+        </div>
+        <button onclick="triggerTestAttack('rate_limit', this)" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+            Simulate Request Burst
+        </button>
+    </div>
+
+    <!-- 5. Database Tamper Simulation -->
+    <div class="cyber-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-title">
+                <span>🔏 Tamper Detection Test</span>
+                <span class="badge badge-critical">Module 2</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">
+                Directly modifies a request log entry in the SQLite database out-of-band without re-signing its cryptographic HMAC.
+            </p>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">
+                <b>Expected:</b> Next HMAC audit catches the modification and pinpoints the corrupted row ID.
+            </div>
+        </div>
+        <button onclick="triggerTestAttack('tamper_test', this)" class="btn btn-danger" style="width: 100%; justify-content: center;">
+            Inject Database Tamper
+        </button>
+    </div>
+
+    <!-- 6. Cryptographic HMAC Integrity Audit -->
+    <div class="cyber-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-title">
+                <span>🛡️ Verify Log Integrity</span>
+                <span class="badge badge-resolved">HMAC Audit</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">
+                Recalculates HMAC-SHA256 signatures for every row in <code>request_logs</code> and cross-checks stored cryptographic tags.
+            </p>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">
+                <b>Expected:</b> Reports <code>VERIFIED</code> (clean) or flags corrupted row IDs if tampered.
+            </div>
+        </div>
+        <button onclick="triggerIntegrityAudit(this)" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            Run Cryptographic Audit
+        </button>
+    </div>
+</div>
+
+<!-- Real-time Test Output Console -->
+<div class="cyber-card">
+    <div class="card-title">
+        <span>🖥️ Live Simulation Execution Console</span>
+        <button onclick="document.getElementById('testConsoleOutput').innerHTML = '[*] Console cleared.';" class="btn btn-secondary btn-sm">Clear Output</button>
+    </div>
+    <div id="testConsoleOutput" class="terminal-box" style="min-height: 160px; max-height: 320px; white-space: pre-wrap;">
+[*] Ready for demonstration. Click any test probe above to execute and observe server-side threat detection telemetry.
+    </div>
+</div>
+
+<!-- Recent Security Alerts Created -->
+<div class="cyber-card">
+    <div class="card-title">
+        <span>📋 Security Alerts in SQLite Database</span>
+        <a href="{{ url_for('threats.view_alerts') }}" class="btn btn-secondary btn-sm">Go to Alerts Queue ➔</a>
+    </div>
+    <div class="table-responsive">
+        <table class="cyber-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Timestamp</th>
+                    <th>Alert Type</th>
+                    <th>Severity</th>
+                    <th>Source IP</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in recent_alerts %}
+                    <tr>
+                        <td class="code-cell">#{{ a.id }}</td>
+                        <td class="code-cell">{{ a.timestamp }}</td>
+                        <td><b style="color: var(--accent-cyan);">{{ a.alert_type }}</b></td>
+                        <td><span class="badge badge-{{ a.severity | lower }}">{{ a.severity }}</span></td>
+                        <td class="code-cell">{{ a.source_ip }}</td>
+                        <td>{{ a.reason }}</td>
+                        <td><span class="badge badge-{{ a.status | lower }}">{{ a.status }}</span></td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                            No alerts in database. Launch a test probe above to trigger an alert.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

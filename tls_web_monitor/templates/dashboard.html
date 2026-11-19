@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}SOC Dashboard - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <span>Security Operations Center</span>
+            <span class="page-title-highlight">(SOC) Dashboard</span>
+        </h1>
+        <div class="page-subtitle">Real-time telemetry, threat detection analysis, and persistent SQLite audit records</div>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{{ url_for('threats.security_testing') }}" class="btn btn-secondary">
+            <span>⚡</span> Security Testing
+        </a>
+        <button onclick="triggerIntegrityAudit(this)" class="btn btn-primary">
+            <span>🛡️</span> Verify Log Integrity
+        </button>
+    </div>
+</div>
+
+<!-- SOC Key Metrics Grid (Queried from SQLite) -->
+<div class="stats-grid" id="stats-dashboard-container">
+    <div class="stat-card stat-blue">
+        <div class="stat-label">Total Requests</div>
+        <div class="stat-value" id="stat-total-requests">{{ total_requests }}</div>
+        <div class="stat-desc">Monitored Ingress HTTP/TLS Requests</div>
+    </div>
+
+    <div class="stat-card stat-green">
+        <div class="stat-label">Successful Logins</div>
+        <div class="stat-value" id="stat-success-logins" style="color: var(--status-green);">{{ success_logins }}</div>
+        <div class="stat-desc">Authenticated User Sessions</div>
+    </div>
+
+    <div class="stat-card stat-orange">
+        <div class="stat-label">Failed Logins</div>
+        <div class="stat-value" id="stat-failed-logins" style="color: var(--status-orange);">{{ failed_logins }}</div>
+        <div class="stat-desc">Authentication Failures Recorded</div>
+    </div>
+
+    <div class="stat-card stat-red">
+        <div class="stat-label">Suspicious Events</div>
+        <div class="stat-value" style="color: var(--status-red);">{{ suspicious_events }}</div>
+        <div class="stat-desc">Threat Signatures & Ingress Anomaly</div>
+    </div>
+
+    <div class="stat-card stat-red">
+        <div class="stat-label">Open Alerts</div>
+        <div class="stat-value" id="stat-open-alerts" style="color: var(--status-red);">{{ open_alerts }}</div>
+        <div class="stat-desc">Awaiting SOC Review & Triage</div>
+    </div>
+</div>
+
+<!-- Middle Section: Visual Severity Distribution & Cryptographic Audit Summary -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Alert Severity Distribution -->
+    <div class="cyber-card">
+        <div class="card-title">
+            <span>📊 Alert Severity Distribution</span>
+            <span class="badge badge-info">Real SQLite Counts</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-around; padding: 1rem 0;">
+            <div style="width: 180px; height: 180px;">
+                <canvas 
+                    id="severityChart" 
+                    data-high="{{ high_alerts }}" 
+                    data-med="{{ med_alerts }}" 
+                    data-low="{{ low_alerts }}"
+                ></canvas>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span class="badge badge-high" style="min-width: 70px; text-align: center;">HIGH</span>
+                    <span style="font-size: 1.25rem; font-weight: 700; font-family: var(--font-mono); color: var(--status-red);">{{ high_alerts }}</span>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Critical threats</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span class="badge badge-medium" style="min-width: 70px; text-align: center;">MEDIUM</span>
+                    <span style="font-size: 1.25rem; font-weight: 700; font-family: var(--font-mono); color: var(--status-orange);">{{ med_alerts }}</span>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Suspicious patterns</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span class="badge badge-low" style="min-width: 70px; text-align: center;">LOW</span>
+                    <span style="font-size: 1.25rem; font-weight: 700; font-family: var(--font-mono); color: var(--status-blue);">{{ low_alerts }}</span>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Informational warnings</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cryptographic Log Integrity Baseline -->
+    <div class="cyber-card">
+        <div class="card-title">
+            <span>🛡️ Cryptographic Log-Integrity Status</span>
+            {% if latest_audit %}
+                {% if latest_audit.status == 'VERIFIED' %}
+                    <span class="badge badge-resolved">HMAC VERIFIED ✓</span>
+                {% elif latest_audit.status == 'TAMPER_DETECTED' %}
+                    <span class="badge badge-open">TAMPER DETECTED ⚠️</span>
+                {% else %}
+                    <span class="badge badge-low">{{ latest_audit.status }}</span>
+                {% endif %}
+            {% else %}
+                <span class="badge badge-low">No Audits Run Yet</span>
+            {% endif %}
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1rem;">
+            Every request logged to SQLite is cryptographically hashed with an <b>HMAC-SHA256</b> signature. Any unauthorized SQL update, row injection, or row deletion out-of-band is instantly flagged.
+        </p>
+        <table class="cyber-table" style="margin-bottom: 1rem;">
+            <tbody>
+                <tr>
+                    <td style="color: var(--text-secondary); width: 40%;">Last Verification Time</td>
+                    <td class="code-cell">{{ latest_audit.timestamp if latest_audit else "Not yet performed" }}</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-secondary);">Records Verified</td>
+                    <td class="code-cell">{{ latest_audit.records_audited if latest_audit else 0 }} entries</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-secondary);">Tampered Rows Found</td>
+                    <td>
+                        {% if latest_audit and latest_audit.tampered_records_found > 0 %}
+                            <span style="color: var(--status-red); font-weight: 700;">{{ latest_audit.tampered_records_found }} corrupted records</span>
+                        {% else %}
+                            <span style="color: var(--status-green); font-weight: 700;">0 (Integrity Intact)</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-secondary);">Audited By</td>
+                    <td class="code-cell">{{ latest_audit.verified_by if latest_audit else "System" }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <div id="testConsoleOutput" class="terminal-box" style="max-height: 120px; font-size: 0.78rem; display: none;"></div>
+    </div>
+</div>
+
+<!-- Recent Security Alerts (Last 5) -->
+<div class="cyber-card">
+    <div class="card-title">
+        <span>🚨 Active Security Threat Alerts</span>
+        <a href="{{ url_for('threats.view_alerts') }}" class="btn btn-secondary btn-sm">View All Alerts ➔</a>
+    </div>
+    <div class="table-responsive">
+        <table class="cyber-table">
+            <thead>
+                <tr>
+                    <th>Alert ID</th>
+                    <th>Timestamp (UTC)</th>
+                    <th>Threat Type</th>
+                    <th>Severity</th>
+                    <th>Source IP</th>
+                    <th>Detection Reason</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in recent_alerts %}
+                    <tr>
+                        <td class="code-cell">#{{ alert.id }}</td>
+                        <td class="code-cell">{{ alert.timestamp }}</td>
+                        <td><b style="color: var(--accent-cyan);">{{ alert.alert_type }}</b></td>
+                        <td><span class="badge badge-{{ alert.severity | lower }}">{{ alert.severity }}</span></td>
+                        <td class="code-cell">{{ alert.source_ip }}</td>
+                        <td style="max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ alert.reason }}</td>
+                        <td><span class="badge badge-{{ alert.status | lower }}">{{ alert.status }}</span></td>
+                        <td>
+                            {% if alert.status == 'OPEN' %}
+                                <form action="{{ url_for('threats.acknowledge_alert', alert_id=alert.id) }}" method="POST" style="margin: 0; display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-secondary btn-sm" title="Acknowledge alert">Acknowledge</button>
+                                </form>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.8rem;">Reviewed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                            No threat alerts recorded. System operating under normal parameters.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Recent Request Activity (Last 10) -->
+<div class="cyber-card">
+    <div class="card-title">
+        <span>🕒 Recent Monitored Requests</span>
+        <a href="{{ url_for('monitoring.view_logs') }}" class="btn btn-secondary btn-sm">View Full Log Console ➔</a>
+    </div>
+    <div class="table-responsive">
+        <table class="cyber-table">
+            <thead>
+                <tr>
+                    <th>Log ID</th>
+                    <th>Timestamp (UTC)</th>
+                    <th>Source IP</th>
+                    <th>Method</th>
+                    <th>Requested Path</th>
+                    <th>Status</th>
+                    <th>Username</th>
+                    <th>Event Category</th>
+                    <th>Risk Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_requests %}
+                    <tr>
+                        <td class="code-cell">#{{ log.id }}</td>
+                        <td class="code-cell">{{ log.timestamp }}</td>
+                        <td class="code-cell">{{ log.ip_address }}</td>
+                        <td><b>{{ log.method }}</b></td>
+                        <td class="code-cell" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ log.path }}</td>
+                        <td><span class="badge badge-{{ log.status_code // 100 * 100 }}">{{ log.status_code }}</span></td>
+                        <td>{{ log.username }}</td>
+                        <td><span class="badge badge-info">{{ log.event_category }}</span></td>
+                        <td><span class="badge badge-{{ log.risk_level | lower }}">{{ log.risk_level }}</span></td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                            No request telemetry recorded yet.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

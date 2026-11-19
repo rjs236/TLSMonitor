@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Threat Alerts - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <span>Security Incident</span>
+            <span class="page-title-highlight">& Threat Alerts Queue</span>
+        </h1>
+        <div class="page-subtitle">Rule-based threat analysis detections, signature triggers, and SOC triage queue</div>
+    </div>
+    <div>
+        <a href="{{ url_for('threats.security_testing') }}" class="btn btn-primary">
+            <span>⚡</span> Open Security Testing Console
+        </a>
+    </div>
+</div>
+
+<!-- Alert Metric Counters -->
+<div class="stats-grid">
+    <div class="stat-card stat-red">
+        <div class="stat-label">Open Alerts</div>
+        <div class="stat-value" style="color: var(--status-red);">{{ total_open }}</div>
+        <div class="stat-desc">Requiring SOC analyst triage</div>
+    </div>
+
+    <div class="stat-card stat-red">
+        <div class="stat-label">High Severity</div>
+        <div class="stat-value" style="color: var(--status-red);">{{ total_high }}</div>
+        <div class="stat-desc">SQLi, Traversal & Brute Force</div>
+    </div>
+
+    <div class="stat-card stat-orange">
+        <div class="stat-label">Medium Severity</div>
+        <div class="stat-value" style="color: var(--status-orange);">{{ total_med }}</div>
+        <div class="stat-desc">Rate limit bursts & probing</div>
+    </div>
+
+    <div class="stat-card stat-blue">
+        <div class="stat-label">Low Severity</div>
+        <div class="stat-value" style="color: var(--status-blue);">{{ total_low }}</div>
+        <div class="stat-desc">Anomalous parameters</div>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="cyber-card" style="padding: 1.25rem;">
+    <form method="GET" action="{{ url_for('threats.view_alerts') }}">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">Alert Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="OPEN" {% if status_filter == 'OPEN' %}selected{% endif %}>OPEN</option>
+                    <option value="ACKNOWLEDGED" {% if status_filter == 'ACKNOWLEDGED' %}selected{% endif %}>ACKNOWLEDGED</option>
+                    <option value="RESOLVED" {% if status_filter == 'RESOLVED' %}selected{% endif %}>RESOLVED</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">Severity Level</label>
+                <select name="severity" class="form-select">
+                    <option value="">All Severities</option>
+                    <option value="HIGH" {% if severity_filter == 'HIGH' %}selected{% endif %}>HIGH</option>
+                    <option value="MEDIUM" {% if severity_filter == 'MEDIUM' %}selected{% endif %}>MEDIUM</option>
+                    <option value="LOW" {% if severity_filter == 'LOW' %}selected{% endif %}>LOW</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">Threat Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for t in alert_types %}
+                        <option value="{{ t }}" {% if type_filter == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="height: 38px;">Apply Filter</button>
+                <a href="{{ url_for('threats.view_alerts') }}" class="btn btn-secondary" style="height: 38px;">Reset</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Alerts Table -->
+<div class="cyber-card">
+    <div class="table-responsive">
+        <table class="cyber-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Timestamp (UTC)</th>
+                    <th>Threat Signature</th>
+                    <th>Severity</th>
+                    <th>Source IP</th>
+                    <th>Detection Reason</th>
+                    <th>Payload Sample</th>
+                    <th>Status</th>
+                    <th>Triage Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in alerts %}
+                    <tr>
+                        <td class="code-cell">#{{ alert.id }}</td>
+                        <td class="code-cell">{{ alert.timestamp }}</td>
+                        <td><b style="color: var(--accent-cyan);">{{ alert.alert_type }}</b></td>
+                        <td><span class="badge badge-{{ alert.severity | lower }}">{{ alert.severity }}</span></td>
+                        <td class="code-cell">{{ alert.source_ip }}</td>
+                        <td style="max-width: 260px;">{{ alert.reason }}</td>
+                        <td class="code-cell" style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ alert.payload_sample }}">
+                            {{ alert.payload_sample or "N/A" }}
+                        </td>
+                        <td><span class="badge badge-{{ alert.status | lower }}">{{ alert.status }}</span></td>
+                        <td>
+                            {% if alert.status == 'OPEN' %}
+                                <form action="{{ url_for('threats.acknowledge_alert', alert_id=alert.id) }}" method="POST" style="display: inline; margin: 0;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-secondary btn-sm" title="Acknowledge alert">Acknowledge</button>
+                                </form>
+                                <form action="{{ url_for('threats.resolve_alert', alert_id=alert.id) }}" method="POST" style="display: inline; margin: 0;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-primary btn-sm" title="Mark resolved">Resolve</button>
+                                </form>
+                            {% elif alert.status == 'ACKNOWLEDGED' %}
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">By: {{ alert.acknowledged_by }}</div>
+                                <form action="{{ url_for('threats.resolve_alert', alert_id=alert.id) }}" method="POST" style="display: inline; margin: 0;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-primary btn-sm" title="Mark resolved">Resolve</button>
+                                </form>
+                            {% else %}
+                                <span style="color: var(--status-green); font-size: 0.8rem; font-weight: 600;">Resolved ✓</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                            No alerts matching filter criteria found in database.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

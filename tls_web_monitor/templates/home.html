@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}User Portal - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <span>Welcome, </span>
+            <span class="page-title-highlight">{{ user.username }}</span>
+        </h1>
+        <div class="page-subtitle">Authenticated Session: Standard User Portal (Role: {{ user.role | upper }})</div>
+    </div>
+    <div>
+        <span class="badge badge-info">RBAC Tier: Standard</span>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card stat-blue">
+        <div class="stat-label">Identity Role</div>
+        <div class="stat-value" style="font-size: 1.5rem; text-transform: uppercase;">{{ user.role }}</div>
+        <div class="stat-desc">Role-Based Access Control Profile</div>
+    </div>
+
+    <div class="stat-card stat-green">
+        <div class="stat-label">Connection Security</div>
+        <div class="stat-value" style="font-size: 1.5rem; color: var(--status-green);">
+            {% if is_https %}TLS 1.3 / HTTPS{% else %}HTTP Insecure{% endif %}
+        </div>
+        <div class="stat-desc">Transport Layer Cipher: AES-256-GCM</div>
+    </div>
+
+    <div class="stat-card stat-cyan">
+        <div class="stat-label">Client IP Address</div>
+        <div class="stat-value" style="font-size: 1.5rem; font-family: var(--font-mono);">{{ client_ip }}</div>
+        <div class="stat-desc">Source Origin Monitored</div>
+    </div>
+
+    <div class="stat-card stat-orange">
+        <div class="stat-label">Account Status</div>
+        <div class="stat-value" style="font-size: 1.5rem; color: var(--status-green);">ACTIVE</div>
+        <div class="stat-desc">Member since: {{ user.created_at[:10] if user.created_at else 'Active' }}</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Active TLS Session Details -->
+    <div class="cyber-card">
+        <div class="card-title">
+            <span>🔒 Active Transport Security Parameters</span>
+            <span class="badge badge-resolved">Secure Tunnel</span>
+        </div>
+        <table class="cyber-table">
+            <tbody>
+                <tr>
+                    <td style="color: var(--text-secondary); width: 40%;">Protocol Scheme</td>
+                    <td class="code-cell">{{ request.scheme | upper }}</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-secondary);">Session Cookie Security</td>
+                    <td><span class="badge badge-resolved">HttpOnly ✓ | SameSite=Lax ✓</span></td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-secondary);">Password Hash Algorithm</td>
+                    <td class="code-cell">PBKDF2-HMAC-SHA256 (Werkzeug)</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-secondary);">CSRF Protection</td>
+                    <td><span class="badge badge-resolved">Cryptographic Token Enforced ✓</span></td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-secondary);">Request Monitoring</td>
+                    <td><span class="badge badge-resolved">Telemetry & HMAC Logging Active ✓</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- RBAC Policy Notification -->
+    <div class="cyber-card">
+        <div class="card-title">
+            <span>🛡️ Role-Based Access Control (RBAC) Notice</span>
+            <span class="badge badge-medium">Policy Enforced</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+            As a <b>Standard User</b>, your access is strictly confined to user-level self-service features. Administrative routes, including:
+        </p>
+        <ul style="color: var(--text-primary); margin-left: 1.5rem; font-size: 0.88rem; line-height: 1.8; margin-bottom: 1rem;">
+            <li><code>/admin/dashboard</code> (SOC Security Overview)</li>
+            <li><code>/logs</code> (Full Persistent Request Logs)</li>
+            <li><code>/alerts</code> (Threat Detection Queue & Triage)</li>
+            <li><code>/security-testing</code> (Penetration & Simulation Console)</li>
+        </ul>
+        <p style="color: var(--text-secondary); font-size: 0.85rem;">
+            Attempting to navigate directly to these routes will trigger a <b>403 Access Forbidden</b> denial, which is recorded in the SIEM request log with elevated risk categorization.
+        </p>
+    </div>
+</div>
+
+<!-- Recent Login Activity -->
+<div class="cyber-card">
+    <div class="card-title">
+        <span>🕒 Your Recent Login Attempts</span>
+        <span class="badge badge-info">Audit Trail</span>
+    </div>
+    <div class="table-responsive">
+        <table class="cyber-table">
+            <thead>
+                <tr>
+                    <th>Timestamp (UTC)</th>
+                    <th>Source IP Address</th>
+                    <th>Outcome</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attempt in recent_logins %}
+                    <tr>
+                        <td class="code-cell">{{ attempt.timestamp }}</td>
+                        <td class="code-cell">{{ attempt.ip_address }}</td>
+                        <td>
+                            {% if attempt.success %}
+                                <span class="badge badge-resolved">Authentication Successful</span>
+                            {% else %}
+                                <span class="badge badge-open">Authentication Failed</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if attempt.success %}
+                                <span style="color: var(--status-green);">Authorized</span>
+                            {% else %}
+                                <span style="color: var(--status-red);">Security Failure</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted);">No prior login records found for this account.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

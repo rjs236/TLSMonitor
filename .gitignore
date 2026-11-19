@@ -1,0 +1,39 @@
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Binaries & Executables
+*.exe
+cloudflared.exe
+
+# SQLite Databases & Local Test DBs
+*.db
+*.sqlite3
+instance/
+
+# Local Secrets & Certificates
+.env
+.env.local
+*.secret
+*.key
+*.pem
+!certs/.gitkeep
+!tls_web_monitor/certs/.gitkeep
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

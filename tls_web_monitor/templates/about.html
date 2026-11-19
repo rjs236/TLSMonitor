@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}About Project - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <span>Project Overview &amp;</span>
+            <span class="page-title-highlight">Technical Architecture</span>
+        </h1>
+        <div class="page-subtitle">{{ app_name }} &mdash; University Capstone Engineering Defense</div>
+    </div>
+    <div>
+        <span class="badge badge-resolved">v{{ app_version }}</span>
+    </div>
+</div>
+
+<!-- Executive Summary -->
+<div class="cyber-card">
+    <div class="card-title">
+        <span>🎯 Project Objective & Scope</span>
+        <span class="badge badge-info">Capstone Specification</span>
+    </div>
+    <p style="color: var(--text-primary); font-size: 0.95rem; line-height: 1.8; margin-bottom: 1rem;">
+        Modern web applications operate in an adversarial threat landscape characterized by automated botnets, credential stuffing, injection probes, and out-of-band database tampering. This university capstone project develops an integrated, full-stack cybersecurity defense system that unites <b>transport-layer encryption (TLS/HTTPS)</b>, <b>secure user authentication and RBAC</b>, <b>real-time HTTP telemetry and persistent SQLite logging</b>, <b>cryptographic tamper-evident HMAC audit verification</b>, and a <b>rule-based server-side threat detection engine</b>.
+    </p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius); border-left: 3px solid var(--accent-cyan);">
+            <b style="color: var(--accent-cyan);">Core Language:</b>
+            <div style="color: var(--text-secondary); font-size: 0.88rem;">Python 3.13 / 3.12</div>
+        </div>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius); border-left: 3px solid var(--accent-cyan);">
+            <b style="color: var(--accent-cyan);">Web Framework:</b>
+            <div style="color: var(--text-secondary); font-size: 0.88rem;">Flask 3.1</div>
+        </div>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius); border-left: 3px solid var(--accent-cyan);">
+            <b style="color: var(--accent-cyan);">Transport Security:</b>
+            <div style="color: var(--text-secondary); font-size: 0.88rem;">Python <code>ssl</code> (TLS 1.3 / 1.2)</div>
+        </div>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius); border-left: 3px solid var(--accent-cyan);">
+            <b style="color: var(--accent-cyan);">Database & Audit:</b>
+            <div style="color: var(--text-secondary); font-size: 0.88rem;">SQLite3 + Cryptography HMAC</div>
+        </div>
+    </div>
+</div>
+
+<!-- Exactly Three Core Modules -->
+<div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Module 1 -->
+    <div class="cyber-card" style="border-left: 4px solid var(--accent-cyan);">
+        <div class="card-title">
+            <span>🔐 Module 1: TLS-Based Secure Communication and Authentication</span>
+            <span class="badge badge-resolved">Module 1</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1rem;">
+            Provides an encrypted, authenticated transport tunnel and user access framework:
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <ul style="color: var(--text-primary); font-size: 0.88rem; line-height: 1.8; margin-left: 1.25rem;">
+                <li><b>TLS Context Hardening:</b> Configured with Python's <code>ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)</code>. Enforces TLS 1.2 / TLS 1.3, blocks weak ciphers and insecure legacy versions (SSLv2, SSLv3, TLS 1.0, TLS 1.1).</li>
+                <li><b>X.509 Development Certificates:</b> Auto-generated with 2048-bit RSA keys and Subject Alternative Names (SAN) for <code>localhost</code> and <code>127.0.0.1</code> via the <code>cryptography</code> library.</li>
+                <li><b>PBKDF2 Password Hashing:</b> Passwords hashed with salted PBKDF2-HMAC-SHA256 via Werkzeug. Zero plaintext passwords stored.</li>
+            </ul>
+            <ul style="color: var(--text-primary); font-size: 0.88rem; line-height: 1.8; margin-left: 1.25rem;">
+                <li><b>Session &amp; Cookie Security:</b> Cookies hardened with <code>HttpOnly=True</code>, <code>SameSite=Lax</code>, and dynamic <code>Secure=True</code> over TLS. Permanent lifetime capped at 2 hours.</li>
+                <li><b>CSRF Defense:</b> Cryptographic CSRF tokens validated on all state-changing POST requests using constant-time verification (<code>hmac.compare_digest</code>).</li>
+                <li><b>Security Headers:</b> Enforces HSTS, CSP, X-Content-Type-Options, X-Frame-Options, and Referrer-Policy.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Module 2 -->
+    <div class="cyber-card" style="border-left: 4px solid var(--accent-blue);">
+        <div class="card-title">
+            <span>📡 Module 2: Web Application Monitoring and Logging</span>
+            <span class="badge badge-info">Module 2</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1rem;">
+            Provides continuous request telemetry, persistent database audit logs, and cryptographic verification:
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <ul style="color: var(--text-primary); font-size: 0.88rem; line-height: 1.8; margin-left: 1.25rem;">
+                <li><b>Telemetry Hooks:</b> Intercepts all requests via Flask <code>before_request</code> and <code>after_request</code> hooks, capturing timestamp, client IP, method, requested path, response code, and latency (ms).</li>
+                <li><b>Sensitive Data Redaction:</b> Sanitizes query parameters and request bodies, strictly excluding passwords, tokens, cookies, and authorization headers from audit storage.</li>
+                <li><b>Search, Filter &amp; Export:</b> Multi-parameter log console with pagination, search keywords, category filters, and CSV export.</li>
+            </ul>
+            <ul style="color: var(--text-primary); font-size: 0.88rem; line-height: 1.8; margin-left: 1.25rem;">
+                <li><b>Cryptographic Tamper-Evidence:</b> Every log row is signed with an <code>HMAC-SHA256</code> tag over canonical row data.</li>
+                <li><b>Integrity Audit Engine:</b> Scans SQLite records and flags any record inserted, edited, or deleted directly in the database without authorization.</li>
+                <li><b>Security Limitations:</b> Local HMAC protects against unauthorized file modification. In production enterprise deployments, local logs must be supplemented with real-time TLS forwarding to an append-only WORM SIEM.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Module 3 -->
+    <div class="cyber-card" style="border-left: 4px solid var(--status-red);">
+        <div class="card-title">
+            <span>🚨 Module 3: Threat Detection and Security Analysis</span>
+            <span class="badge badge-high">Module 3</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1rem;">
+            Autonomous server-side rule engine inspecting ingress requests for malicious activity:
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <ul style="color: var(--text-primary); font-size: 0.88rem; line-height: 1.8; margin-left: 1.25rem;">
+                <li><b>SQL Injection (SQLi) Detection:</b> High-severity detection of UNION SELECT, boolean tautologies (<code>' OR '1'='1'</code>), destructive DDL commands, and comment truncations.</li>
+                <li><b>Path Traversal (LFI) Detection:</b> Flags path backtracking sequences (<code>../</code>, <code>..\</code>) and sensitive operating system files (<code>/etc/passwd</code>, <code>win.ini</code>).</li>
+                <li><b>Brute Force Detection:</b> Monitors consecutive failed login attempts within a configurable time window (default: 5 failures / 5 minutes) and alerts on credential stuffing.</li>
+            </ul>
+            <ul style="color: var(--text-primary); font-size: 0.88rem; line-height: 1.8; margin-left: 1.25rem;">
+                <li><b>Rate Limiting / Request Bursts:</b> Detects rapid request floods exceeding threshold (default: 60 req/min) from a single IP.</li>
+                <li><b>Unauthorized Access Probing:</b> Flags repeated 401/403 access denials targeting protected administrative routes.</li>
+                <li><b>Defense-in-Depth Principle:</b> Detection rules provide real-time alerting but do not replace preventive controls. All SQL queries strictly use parameterized statements (<code>?</code>).</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Browser Certificate Warning Guidance -->
+<div class="cyber-card">
+    <div class="card-title">
+        <span>🔒 Understanding Development TLS Certificates &amp; Browser Warnings</span>
+        <span class="badge badge-medium">Security Concept</span>
+    </div>
+    <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1rem;">
+        When visiting <code>https://localhost:8443</code>, your web browser (Chrome, Edge, Firefox) displays a warning screen (such as <b>"Your connection is not private"</b> or <b>NET::ERR_CERT_AUTHORITY_INVALID</b>).
+    </p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <div style="background: var(--bg-secondary); padding: 1.25rem; border-radius: var(--radius);">
+            <b style="color: var(--accent-cyan); font-size: 0.95rem;">Why Does the Warning Appear?</b>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem; line-height: 1.6;">
+                The TLS tunnel is fully encrypted using 2048-bit RSA and modern AES-GCM ciphers. However, the certificate was generated locally and signed by its own key (self-signed) rather than a commercial Root Certificate Authority (like Let's Encrypt or DigiCert) trusted by the operating system trust store.
+            </p>
+        </div>
+        <div style="background: var(--bg-secondary); padding: 1.25rem; border-radius: var(--radius);">
+            <b style="color: var(--status-green); font-size: 0.95rem;">How to Safely Trust it in Development:</b>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem; line-height: 1.6;">
+                1. In Chrome/Edge: Click <b>Advanced</b> &rarr; <b>Proceed to localhost (unsafe)</b>.<br>
+                2. On Windows: To eliminate warnings permanently, import <code>certs/cert.pem</code> into <b>Trusted Root Certification Authorities</b> via <code>certmgr.msc</code>.<br>
+                3. In production, obtain an officially signed certificate and place the app behind a reverse proxy (e.g. Nginx).
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
